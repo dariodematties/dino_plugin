@@ -34,6 +34,9 @@ from PIL import Image
 import utils
 import vision_transformer as vits
 
+from waggle.plugin import Plugin
+from waggle.data.vision import Camera
+import time
 
 def apply_mask(image, mask, color, alpha=0.5):
     for c in range(3):
@@ -149,12 +152,20 @@ if __name__ == '__main__':
 
     # open image
     if args.image_path is None:
-        # user has not specified any image - we use our own image
-        print("Please use the `--image_path` argument to indicate the path of the image you wish to visualize.")
-        print("Since no image path have been provided, we take the first image in our paper.")
-        response = requests.get("https://dl.fbaipublicfiles.com/dino/img.png")
-        img = Image.open(BytesIO(response.content))
-        img = img.convert('RGB')
+        ## user has not specified any image - we use our own image
+        #print("Please use the `--image_path` argument to indicate the path of the image you wish to visualize.")
+        #print("Since no image path have been provided, we take the first image in our paper.")
+        #response = requests.get("https://dl.fbaipublicfiles.com/dino/img.png")
+        #img = Image.open(BytesIO(response.content))
+        #img = img.convert('RGB')
+        with Plugin() as plugin, Camera() as camera:
+            # process samples from video stream
+            sample = camera.snapshot()
+            sample.save("live_image.jpg")
+            args.image_path = "live_image.jpg"
+            with open(args.image_path, 'rb') as f:
+                img = Image.open(f)
+                img = img.convert('RGB')
     elif os.path.isfile(args.image_path):
         with open(args.image_path, 'rb') as f:
             img = Image.open(f)

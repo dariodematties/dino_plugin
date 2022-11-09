@@ -16,6 +16,7 @@ import glob
 import sys
 import argparse
 import cv2
+import shutil
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -29,6 +30,9 @@ from PIL import Image
 import utils
 import vision_transformer as vits
 
+from waggle.plugin import Plugin
+from waggle.data.vision import Camera
+import time
 
 FOURCC = {
     "mp4": cv2.VideoWriter_fourcc(*"MP4V"),
@@ -47,8 +51,49 @@ class VideoGenerator:
 
     def run(self):
         if self.args.input_path is None:
-            print(f"Provided input path {self.args.input_path} is non valid.")
-            sys.exit(1)
+            #print(f"Provided input path {self.args.input_path} is non valid.")
+            #sys.exit(1)
+            with Plugin() as plugin, Camera() as camera:
+                # process samples from video stream
+                count=0
+                os.mkdir("./images")
+                for framenum, sample in enumerate(camera.stream()):
+                    sample.save(f"images/{framenum:03d}.jpg")
+                    if count > args.video_length:
+                        break
+
+                    count += 1
+                    
+
+                args.input_path = "images"
+                # If input is a folder of already extracted frames
+                if os.path.isdir(self.args.input_path):
+                    images_folder = os.path.join(
+                        self.args.output_path, "images"
+                    )
+
+                    os.makedirs(images_folder, exist_ok=True)
+
+                    attention_folder = os.path.join(
+                        self.args.output_path, "attention"
+                    )
+
+                    os.makedirs(attention_folder, exist_ok=True)
+
+                    self._inference('images', attention_folder)
+
+                    self._generate_video_from_images(
+                        images_folder, self.args.output_path, 'video'
+                    )
+
+                    self._generate_video_from_images(
+                        attention_folder, self.args.output_path, 'attvideo'
+                    )
+
+                    shutil.rmtree("./images")
+                    shutil.rmtree("./attention")
+
+
         else:
             if self.args.video_only:
                 self._generate_video_from_images(
@@ -116,9 +161,10 @@ class VideoGenerator:
             success, image = vidcap.read()
             count += 1
 
-    def _generate_video_from_images(self, inp: str, out: str):
+    def _generate_video_from_images(self, inp: str, out: str, name_of_file="video"):
         img_array = []
-        attention_images_list = sorted(glob.glob(os.path.join(inp, "attn-*.jpg")))
+        attention_images_list = sorted(glob.glob(os.path.join(inp, "*.jpg")))
+        #attention_images_list = sorted(glob.glob(os.path.join(inp, "attn-*.jpg")))
 
         # Get size of the first image
         with open(attention_images_list[0], "rb") as f:
@@ -136,7 +182,8 @@ class VideoGenerator:
                 img_array.append(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
 
         out = cv2.VideoWriter(
-            os.path.join(out, "video." + self.args.video_format),
+            os.path.join(out, name_of_file + "." + self.args.video_format),
+            #os.path.join(out, "video." + self.args.video_format),
             FOURCC[self.args.video_format],
             self.args.fps,
             size,
@@ -145,6 +192,7 @@ class VideoGenerator:
         for i in range(len(img_array)):
             out.write(img_array[i])
         out.release()
+
         print("Done")
 
     def _inference(self, inp: str, out: str):
@@ -320,7 +368,8 @@ def parse_args():
     )
     parser.add_argument(
         "--input_path",
-        required=True,
+        default=None,
+        #required=True,
         type=str,
         help="""Path to a video file if you want to extract frames
             or to a folder of images already extracted by yourself.
@@ -366,6 +415,13 @@ def parse_args():
         type=str,
         choices=["mp4", "avi"],
         help="Format of generated video (mp4 or avi).",
+    )
+
+    parser.add_argument(
+        "--video_length",
+        type=int,
+        default=200,
+        help="Length of generated video in frames.",
     )
 
     return parser.parse_args()
