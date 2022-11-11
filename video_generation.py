@@ -356,7 +356,7 @@ def parse_args():
     )
     parser.add_argument(
         "--pretrained_weights",
-        default="",
+        default="dino_deitsmall8_pretrain_full_checkpoint.pth",
         type=str,
         help="Path to pretrained weights to load.",
     )
