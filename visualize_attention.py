@@ -108,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument("--checkpoint_key", default="teacher", type=str,
         help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument("--image_path", default=None, type=str, help="Path of the image to load.")
+    parser.add_argument("--input", default=None, type=str, help="Camera class accepts URLs.")
     parser.add_argument("--image_size", default=(480, 480), type=int, nargs="+", help="Resize image.")
     parser.add_argument('--output_dir', default='.', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
@@ -158,14 +159,24 @@ if __name__ == '__main__':
         #response = requests.get("https://dl.fbaipublicfiles.com/dino/img.png")
         #img = Image.open(BytesIO(response.content))
         #img = img.convert('RGB')
-        with Plugin() as plugin, Camera() as camera:
-            # process samples from video stream
-            sample = camera.snapshot()
-            sample.save("live_image.jpg")
-            args.image_path = "live_image.jpg"
-            with open(args.image_path, 'rb') as f:
-                img = Image.open(f)
-                img = img.convert('RGB')
+        if args.input:
+            with Plugin() as plugin, Camera(args.input) as camera:
+                # process samples from video stream
+                sample = camera.snapshot()
+                sample.save("live_image.jpg")
+                args.image_path = "live_image.jpg"
+                with open(args.image_path, 'rb') as f:
+                    img = Image.open(f)
+                    img = img.convert('RGB')
+        else:
+            with Plugin() as plugin, Camera() as camera:
+                # process samples from video stream
+                sample = camera.snapshot()
+                sample.save("live_image.jpg")
+                args.image_path = "live_image.jpg"
+                with open(args.image_path, 'rb') as f:
+                    img = Image.open(f)
+                    img = img.convert('RGB')
     elif os.path.isfile(args.image_path):
         with open(args.image_path, 'rb') as f:
             img = Image.open(f)
