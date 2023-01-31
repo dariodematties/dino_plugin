@@ -228,6 +228,7 @@ if __name__ == '__main__':
         fname = os.path.join(args.output_dir, "attn-head" + str(j) + ".png")
         plt.imsave(fname=fname, arr=attentions[j], format='png')
         print(f"{fname} saved.")
+        plugin.upload_file(fname, timestamp=sample.timestamp)
 
     if args.threshold is not None:
         image = skimage.io.imread(os.path.join(args.output_dir, "img.png"))
