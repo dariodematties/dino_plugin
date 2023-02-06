@@ -53,7 +53,7 @@ class VideoGenerator:
         if self.args.input_path is None:
             #print(f"Provided input path {self.args.input_path} is non valid.")
             #sys.exit(1)
-            with Plugin() as plugin, Camera() as camera:
+            with Camera() as camera:
                 # process samples from video stream
                 count=0
                 os.mkdir("./images")
@@ -181,8 +181,9 @@ class VideoGenerator:
                 img = img.convert("RGB")
                 img_array.append(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
 
+        video_path = os.path.join(out, name_of_file + "." + self.args.video_format)
         out = cv2.VideoWriter(
-            os.path.join(out, name_of_file + "." + self.args.video_format),
+            video_path,
             #os.path.join(out, "video." + self.args.video_format),
             FOURCC[self.args.video_format],
             self.args.fps,
@@ -192,6 +193,10 @@ class VideoGenerator:
         for i in range(len(img_array)):
             out.write(img_array[i])
         out.release()
+
+        with Plugin() as plugin:
+            plugin.upload_file(video_path)
+            #plugin.upload_file(video_path, timestamp=sample.timestamp)
 
         print("Done")
 
